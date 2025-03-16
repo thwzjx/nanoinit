@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 )
 
@@ -162,16 +163,44 @@ NB_MODULE(%s, m) {
 	return nil
 }
 
-func main() {
-	if len(os.Args) != 3 || os.Args[1] != "init" {
-		fmt.Printf("用法: %s init <项目名称>\n", os.Args[0])
-		os.Exit(1)
+func buildNano() error {
+	//cmd := exec.Command("cmake", "-S . -B build")
+	//res, err := cmd.Output()
+	cmd := exec.Command("cmake", "-B build", "-S", ".")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		fmt.Println("CMake configuration failed:", err)
+		return err
 	}
 
-	projectName := os.Args[2]
-	err := initProject(projectName)
-	if err != nil {
-		fmt.Printf("初始化项目时出错: %v\n", err)
-		os.Exit(1)
+	// 运行 CMake 构建
+	cmd = exec.Command("cmake", "--build", "build")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		fmt.Println("CMake build failed:", err)
+		return err
 	}
+	fmt.Println("Build cmake")
+	return nil
+}
+func main() {
+	if len(os.Args) == 2 && os.Args[1] == "build" {
+		err := buildNano()
+		if err != nil {
+			fmt.Println("Error:", err)
+			os.Exit(-1)
+		}
+		os.Exit(0)
+	}
+	if len(os.Args) == 3 && os.Args[1] == "init" {
+		projectName := os.Args[2]
+		err := initProject(projectName)
+		if err != nil {
+			fmt.Printf("初始化项目时出错: %v\n", err)
+			os.Exit(1)
+		}
+	}
+	os.Exit(0)
 }
